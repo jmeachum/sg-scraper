@@ -7,21 +7,24 @@ import ffmpeg
 import logging
 import urllib.parse
 import datetime
-import pathlib
+from pathlib import Path
 import sys
+from vimeo import Vimeo
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler(f"sg_download_{datetime.datetime.now().strftime('%d-%b-%Y-%H-%M-%S')}.log"),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
 
 
 BASE_URL = "https://sample-genie.com"
 AJAX_URL = f'{BASE_URL}/wp-admin/admin-ajax.php'
+
+def setup_log(path):
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(f"{path}/sg_download_{datetime.datetime.now().strftime('%d-%b-%Y-%H-%M-%S')}.log"),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
 
 
 def login(session, username, password):
@@ -42,8 +45,9 @@ def login(session, username, password):
         'action': {'pp_ajax_login'},
         'data': f'login_username={urllib.parse.quote(username)}&login_password={password}&login_form_id=1&pp_current_url=https%3A%2F%2Fsample-genie.com%2F&login_referrer_page='
     }
-    login_resp = session.post(url=AJAX_URL, headers=login_headers, data=login_data, allow_redirects=True)
+    
     try:
+        login_resp = session.post(url=AJAX_URL, headers=login_headers, data=login_data, allow_redirects=True)
         login_resp.raise_for_status()
         logging.info("Login successful")
     except HTTPError as e:
@@ -57,7 +61,7 @@ def parse_iframe(iframe_src, session):
     src_url = soup.iframe.attrs["src"]
 
     logging.info(f"iFrame src is: {src_url}")
-    logging.info("Get src url")
+    logging.info(f"Get src url")
     vimeo_resp = session.get(f'https:{soup.iframe.attrs["src"]}')
     try:
         vimeo_resp.raise_for_status()
@@ -74,8 +78,11 @@ def parse_iframe(iframe_src, session):
     if len(script_tag) >= 3:
         logging.info("Script tags parsed and expected number of tags found")
         logging.info("Search tags for cdn_url regex")
-        result = re.search(r'({"cdn_url".*?});', script_tag[2].string)
-        if len(result) >= 2:
+        for tag in script_tag:
+            result = re.search(r'({"cdn_url".*?});', tag.string)
+            if result:
+                break
+        if len(result.groups()) == 1:
             logging.info("Expected length of search groups returned")
             json_parsed = json.loads(result[1])
             try:
@@ -84,7 +91,24 @@ def parse_iframe(iframe_src, session):
                 for stream in streams:
                     if stream['quality'] == '1080p':
                         id_id = stream['id']
-                    # elif stream['quality'] == 
+                        logging.info(f"Found {id_id} for video in 1080p")
+                        break
+                    if stream['quality'] == '720p':
+                        id_id = stream['id']
+                        logging.info(f"Found {id_id} for video in 720p")
+                        break
+                    if stream['quality'] == '540p':
+                        id_id = stream['id']
+                        logging.info(f"Found {id_id} for video in 540p")
+                        break                   
+                    if stream['quality'] == '360p':
+                        id_id = stream['id']
+                        logging.info(f"Found {id_id} for video in 360p")
+                        break
+                    if stream['quality'] == '240p':
+                        id_id = stream['id']
+                        logging.info(f"Found {id_id} for video in 240p")
+                        break
                 logging.info("Parse stream url")
                 stream_url = json_parsed['request']['files']['dash']['cdns']['akfire_interconnect_quic']['url']
                 logging.info(f"Stream url is: {stream_url}")
@@ -93,7 +117,7 @@ def parse_iframe(iframe_src, session):
                 logging.info(f"Video title is: {video_title}")
                 logging.info("Parse stream url for base url")
                 base_url_search_group = re.search(r'(^https:.*/)sep', stream_url)
-                if len(base_url_search_group) >= 2:
+                if len(base_url_search_group.groups()) == 1:
                     logging.info("Parsed base url from stream url")
                     base_url = base_url_search_group[1]
                     logging.info("Create video url")
@@ -101,7 +125,7 @@ def parse_iframe(iframe_src, session):
                     logging.debug(f"Video url: {video_url}")
                     logging.info("Crate audio url")
                     audio_id_search_group = re.search(r'audio/(.*?),', stream_url)
-                    if len(audio_id_search_group) >= 2:
+                    if len(audio_id_search_group.groups()) == 1:
                         logging.info("Found expected search groups for url")
                         audio_url = f'{base_url}parcel/audio/{audio_id_search_group[1]}.mp4'
                         logging.debug(f"Audio url: {audio_url}")
@@ -123,43 +147,69 @@ def setup_vpn():
     pass
 
 def download_file(video_url, audio_url, video_title, download_path, session):
-    video_resp = session.get(video_url, stream=True)
-    audio_resp = session.get(audio_url, stream=True)
-    try:
-        video_resp.raise_for_status()
-        audio_resp.raise_for_status()
-    except HTTPError as e:
-        logging.error("Failed to get audio or video from url")
-        logging.exception(exc_info=e)
+    if not download_path.exists():
+        logging.info(f"Creating {download_path} and all parents that do not exist")
+        download_path.mkdir(parents=True)
 
-    with open(f'{download_path}/video_{video_title}', 'w+b') as v:
-        v.write(video_resp.content)
+    video_path = download_path / f'video_{video_title}'
+    audio_path = download_path / f'audio_{video_title}'
+    if not video_path.suffix or video_path.suffix != '.mp4':
+        video_path = video_path.with_suffix('.mp4')
+    if not audio_path.suffix or audio_path.suffix != '.mp4':
+        audio_path = audio_path.with_suffix('.mp4')
+    if not video_path.exists():
+        logging.info(f"Video file {video_path} does not exist, downloading")
+        try:
+            video_resp = session.get(video_url, stream=True)
+            video_resp.raise_for_status()
+            with video_path.open("w+b") as v:
+                v.write(video_resp.content)
+        except HTTPError as e:
+            logging.error("Failed to get video from url")
+            logging.exception(exc_info=e)
+    else:
+        logging.info(f"File {video_path} exists, skipping")
     
-    with open(f'{download_path}/audio_{video_title}', 'w+b') as a:
-        a.write(audio_resp.content)
+    if not audio_path.exists():
+        logging.info(f"Audio file {audio_path} does not exist, downloading")
+        try:
+            audio_resp = session.get(audio_url, stream=True)
+            audio_resp.raise_for_status()
+            with audio_path.open("w+b") as a:
+                a.write(audio_resp.content)
+        except HTTPError as e:
+            logging.error("Failed to get audio from url")
+            logging.exception(exc_info=e)
+    else:
+        logging.info(f"File {audio_path} exists, skipping")
 
 
-def get_list_of_video_ids(session):
+def get_list_of_video_ids(session, number_to_download=None):
     logging.info("Getting list of video ids")
     # Gets initial page that will contain html to parse for all video ids and pages
     list_resp = session.get(f'{AJAX_URL}?action=search_video&s=&types%5B%5D=stream&types%5B%5D=vault', allow_redirects=True)
     soup = BeautifulSoup(list_resp.content, "html.parser")
     page_number_items = soup.find_all(class_='page-link')  # Gets class that contains list of pages
-    page_numbers = [number.attrs['data-number'] for number in page_number_items]  # Extracts the page numbers
-    logging.info("Scraped all page numbers for video links")
+    if number_to_download:
+        page_numbers = [number.attrs['data-number'] for number in page_number_items[0:number_to_download]]  # Extracts the page numbers
+        logging.info("Scraped all page numbers of {number_to_download} pages")
+    else:
+        page_numbers = [number.attrs['data-number'] for number in page_number_items] 
+        logging.info("Scraped all page numbers for video links")
     logging.info("Start scraping for video ids by page number")
     video_ids = []
     for page in page_numbers:
-        logging.info("Getting ids for page number: {page}")
+        logging.info(f"Getting ids for page number: {page}")
         # Ajax action to return page for each page number
         page_resp = session.get(f'{AJAX_URL}?action=search_video&paged={page}&s=&types%5B%5D=stream&types%5B%5D=vault')
         soup = BeautifulSoup(page_resp.content, "html.parser")
         video_links = soup.find_all(class_='video-links panel-button alt')  # Gets class that contains video links
         video_ids += [vid.attrs['data-id'] for vid in video_links]  # Scrape ids from items
-        logging.info("Finished scraping video ids for page")
+        logging.info(f"Finished scraping video ids for page: {page}")
     logging.info("Finished getting list of all video ids")
     logging.info(f"IDs are: {video_ids}")
     return video_ids
+
 
 def get_iframe_of_video(session, video_id=None):
     if video_id:
@@ -195,18 +245,19 @@ def update_headers(session):
 
 def main(args):
     args = parse_args(args)
+    setup_log(args.path)
     s = requests.Session()
-    login(s, username=args['username'], password=args['password'])
+    login(s, username=args.username, password=args.password)
     update_headers(s)
-    video_ids = get_list_of_video_ids(s)
-    if args['-n'] or args['--number_to_download']:
-        video_ids = video_ids[0:args['-n']]
+    video_ids = get_list_of_video_ids(s, args.number_of_pages_to_download)
     for vid in video_ids:
-        iframe_resp = get_iframe_of_video(vid)
+        iframe_resp = get_iframe_of_video(s, vid)
         video_url, audio_url, video_title = parse_iframe(iframe_resp, s)
         if video_url and audio_url and video_title:
-            video_title = video_title.replace(" - ", "_").replace(" [", "_").replace("]", "").replace(" ", "_").lower()
-            download_path = f"{args['path']}{video_title}/"
+            # video_title = video_title.replace(" - ", "_").replace(" [", "_").replace("]", "").replace(" ", "_").replace("(", "").replace(")", "").replace("|", "").lower()
+            video_title = re.sub('[^a-zA-Z0-9_. ]', '', video_title).lower()
+            video_title = re.sub(' +', '_', video_title)
+            download_path = Path(f"{args.path.absolute()}/{video_title}".replace(".mp4", ""))
             download_file(video_url, audio_url, video_title, download_path, s)
 
 def parse_args(args):
@@ -214,10 +265,10 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description="Scrape Video and Audio from sample-genie.com")
     parser.add_argument("username", help="username")
     parser.add_argument("password", help="password for username")
-    parser.add_argument("path", type=pathlib.Path, help="Path to download content", default="./")
-    parser.add_argument("-f", "--force", type=bool, help="Force redownloading all content", action="store_true", default=False)
-    parser.add_argument("-c", "--combine", type=bool, help="Combine audio and video into one file", action="store_true", default=False)
-    parser.add_argument("-n", "--number_to_download", type=int, help="Total number of videos to download")
+    parser.add_argument("-p", "--path", type=Path, help="Path to download content", default="./")
+    parser.add_argument("-f", "--force", help="Force redownloading all content", action="store_true", default=False)
+    parser.add_argument("-c", "--combine", help="Combine audio and video into one file", action="store_true", default=False)
+    parser.add_argument("-n", "--number_of_pages_to_download", type=int, help="Total number of video pages to download")
     return parser.parse_args(args)
 
 if __name__ == '__main__':
