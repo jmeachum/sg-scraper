@@ -11,4 +11,4 @@ FROM mcr.microsoft.com/playwright:v1.28.0-focal
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends python3 python3-pip
 
-RUN python3 -m pip install playwright pytest pytest-playwright beautifulsoup4 ffmpeg-python
+RUN python3 -m pip install playwright pytest pytest-playwright beautifulsoup4 ffmpeg-python requests_mock
