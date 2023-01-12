@@ -191,7 +191,10 @@ def get_list_of_video_ids(session, number_to_download=None):
     soup = BeautifulSoup(list_resp.content, "html.parser")
     page_number_items = soup.find_all(class_='page-link')  # Gets class that contains list of pages
     if number_to_download:
-        page_numbers = [number.attrs['data-number'] for number in page_number_items[0:number_to_download]]  # Extracts the page numbers
+        page_numbers = [
+            number.attrs['data-number']
+            for number in page_number_items[:number_to_download]
+        ]
         logging.info("Scraped all page numbers of {number_to_download} pages")
     else:
         page_numbers = [number.attrs['data-number'] for number in page_number_items] 
@@ -211,18 +214,19 @@ def get_list_of_video_ids(session, number_to_download=None):
     return video_ids
 
 
-def get_iframe_of_video(session, video_id=None):
-    if video_id:
-        get_resp = session.get(f'{AJAX_URL}?action=get_video&id={video_id}', allow_redirects=True)
-    else:
-        get_resp = session.get(f'{AJAX_URL}?action=get_video&id=', allow_redirects=True)
-    
+def get_url_from_iframe(session, video_id=None):
     try:
-        get_resp.raise_for_status()
-        return get_resp.content
+        if video_id:
+            resp = session.get(f'{AJAX_URL}?action=get_video&id={video_id}', allow_redirects=True)
+        else:
+            resp = session.get(f'{AJAX_URL}?action=get_video&id=', allow_redirects=True)
+        resp.raise_for_status()
     except HTTPError as e:
         logging.error("Failed to get iframe of video")
         logging.exception(msg="HTTPError for last response.", exec_info=e)
+
+    soup = BeautifulSoup(resp.content, "html.parser")
+    return soup.iframe.attrs["src"]
 
 def update_headers(session):
     video_headers = {
@@ -251,10 +255,10 @@ def main(args):
     update_headers(s)
     video_ids = get_list_of_video_ids(s, args.number_of_pages_to_download)
     for vid in video_ids:
-        iframe_resp = get_iframe_of_video(s, vid)
-        video_url, audio_url, video_title = parse_iframe(iframe_resp, s)
+        vimeo_url = f'https:{get_url_from_iframe(s, vid)}'
+        v = Vimeo(vimeo_url, s)
+        video_url, audio_url, video_title = v.get_urls_and_title()
         if video_url and audio_url and video_title:
-            # video_title = video_title.replace(" - ", "_").replace(" [", "_").replace("]", "").replace(" ", "_").replace("(", "").replace(")", "").replace("|", "").lower()
             video_title = re.sub('[^a-zA-Z0-9_. ]', '', video_title).lower()
             video_title = re.sub(' +', '_', video_title)
             download_path = Path(f"{args.path.absolute()}/{video_title}".replace(".mp4", ""))
