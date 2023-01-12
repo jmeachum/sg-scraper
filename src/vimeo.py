@@ -18,9 +18,14 @@ class Vimeo(object):
         self._window_player_config = None
         self.video_url = None
         self.audio_url = None
+        self._base_cdn_url = None
 
-    def parse(self):
-        pass
+    def get_urls_and_title(self):
+        self._get_vimeo_url()
+        self._get_window_player_config()
+        self._set_attributes()
+        self._get_audio_url()
+        return self.video_url, self.audio_url, self.video_title
     
     def _get_window_player_config(self):
         logging.info("Searching for script tags")
@@ -44,6 +49,8 @@ class Vimeo(object):
         streams = self._window_player_config['request']['files']['dash']['streams']
         self.video_quality_profiles = {item['quality'].lower(): item['id'] for item in streams}
         logging.debug(f"Finished building quality map: {self.video_quality_profiles}")
+        logging.info("Getting highest quality video")
+        self._get_highest_quality_id()
         logging.info('Setting video title attribute')
         self.video_title = self._window_player_config['video']['title']
         logging.debug(f'Set video title attribute to: {self.video_title}')
@@ -51,8 +58,8 @@ class Vimeo(object):
         if base_url_search_group := re.search(
             r'(^https:.*/)sep', self._cdn_stream_url
         ):
-            self.base_url = base_url_search_group[1]
-        self.video_url = f'{self.base_url}parcel/video/{self._highest_video_quality.split("-")[0]}.mp4'
+            self._base_cdn_url = base_url_search_group[1]
+        self.video_url = f'{self._base_cdn_url}parcel/video/{self._highest_video_quality.split("-")[0]}.mp4'
 
     def _get_audio_url(self):
         try:
@@ -67,11 +74,11 @@ class Vimeo(object):
             best_bitrate_id = [item for item in best_sample_rate if item['bitrate'] == best_bitrate]
             # best_bitrate = [max(item["bitrate"] for item in resp_json["audio"])][0]
             # best_bitrate_id = [item for item in resp_json["audio"] if item['bitrate'] == best_bitrate]
-            self.audio_url = f'{self.base_url}parcel/audio/{best_bitrate_id[0].get("id")}.mp4'
+            self.audio_url = f'{self._base_cdn_url}parcel/audio/{best_bitrate_id[0].get("id")}.mp4'
         except HTTPError as e:
             logging.exception(msg=f"Failed to get url {self.url}", exc_info=e)
 
-    def get_url(self):
+    def _get_vimeo_url(self):
         try:
             logging.info(f"Get {self.url}")
             resp = self.session.get(self.url)

@@ -21,7 +21,7 @@ def fixture_data_fixture_content(request):
 def test_get_url(vimeo, data_fixture_content):
     with requests_mock.Mocker(session=vimeo.session) as m:
         m.get(url=vimeo.url, text=data_fixture_content)
-        vimeo.get_url()
+        vimeo._get_vimeo_url()
         assert vimeo.content == data_fixture_content
 
 @pytest.mark.parametrize("vimeo,data_fixture_content", [('http://player.vimeo.com/video/video_id', 'vimeo_no_audio_in_url_parsed_cdn_url.json')], indirect=['vimeo','data_fixture_content'])
