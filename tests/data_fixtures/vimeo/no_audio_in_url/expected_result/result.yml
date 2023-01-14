@@ -1,0 +1,12 @@
+base_cdn_url: https://43vod-adaptive.akamaized.net/exp=1673311840~acl=%2F0ed83b8d-57c2-411e-a172-86923b7d2b9a%2F%2A~hmac=321800014143d8d2665a30b5670dfd9089b3d0ac35802ca5a5a19f4239f20736/0ed83b8d-57c2-411e-a172-86923b7d2b9a/
+cdn_stream_url: https://43vod-adaptive.akamaized.net/exp=1673311840~acl=%2F0ed83b8d-57c2-411e-a172-86923b7d2b9a%2F%2A~hmac=321800014143d8d2665a30b5670dfd9089b3d0ac35802ca5a5a19f4239f20736/0ed83b8d-57c2-411e-a172-86923b7d2b9a/sep/video/97fe0726,b26531d4,0f002591,7a27ec5a,25de01d1,9e063f5a/master.json?base64_init=1
+highest_video_quality: 9e063f5a-6814-4734-adb2-2bdad787a1a8
+video_quality_profiles:
+  360p: 97fe0726-4ace-453e-a4cc-667f1a76de44
+  540p: b26531d4-5361-435d-8ec7-0b7b7e2440fc
+  240p: 0f002591-d9d5-4e0a-a6ae-489a8b3ee1cd
+  720p: 7a27ec5a-72be-4388-a164-bd17d0bb1480
+  1080p: 25de01d1-4740-44ee-b512-9f33d9a28d8c
+  1440p: 9e063f5a-6814-4734-adb2-2bdad787a1a8
+video_title: FADE BLACK | Drum Design Part1 [Kicks]
+video_url: https://43vod-adaptive.akamaized.net/exp=1673311840~acl=%2F0ed83b8d-57c2-411e-a172-86923b7d2b9a%2F%2A~hmac=321800014143d8d2665a30b5670dfd9089b3d0ac35802ca5a5a19f4239f20736/0ed83b8d-57c2-411e-a172-86923b7d2b9a/parcel/video/9e063f5a.mp4

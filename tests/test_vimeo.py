@@ -4,6 +4,7 @@ from src.vimeo import Vimeo
 import pytest
 from pathlib import Path
 import json
+import yaml
 
 @pytest.fixture(name="vimeo")
 def fixture_vimeo(request):
@@ -20,6 +21,16 @@ def fixture_data_fixture_content(request):
         content = f.read()
         yield content.replace('\n', '')
 
+@pytest.fixture(name='load_expected_result')
+def fixture_load_expected_result(request):
+    if hasattr(request, 'param'):
+        expected_result_path = Path(__file__) / "../data_fixtures/vimeo" / request.param
+        expected_result_path = expected_result_path.resolve()
+        with expected_result_path.open() as f:
+            parsed_yaml = yaml.safe_load(f.read())      
+        yield parsed_yaml
+
+
 @pytest.mark.parametrize("data_fixture_content", [('no_audio_in_url/get_url_resp.html')], indirect=['data_fixture_content'])
 def test_get_url(vimeo, data_fixture_content):
     with requests_mock.Mocker(session=vimeo.session) as m:
@@ -27,18 +38,18 @@ def test_get_url(vimeo, data_fixture_content):
         vimeo._get_vimeo_url()
         assert vimeo.content == data_fixture_content
 
-@pytest.mark.parametrize("data_fixture_content", [('no_audio_in_url/parsed_cdn_url.json')], indirect=['data_fixture_content'])
-def test_set_attributes(vimeo, data_fixture_content):
+@pytest.mark.parametrize("data_fixture_content,load_expected_result", [('no_audio_in_url/parsed_cdn_url.json','no_audio_in_url/expected_result/result.yml')], indirect=['data_fixture_content', 'load_expected_result'])
+def test_set_attributes(vimeo, data_fixture_content, load_expected_result):
     json_data_fixture_content = json.loads(data_fixture_content)
     vimeo._window_player_config = json_data_fixture_content
-    vimeo._highest_video_quality = "9e063f5a-6814-4734-adb2-2bdad787a1a8"
+    vimeo._highest_video_quality = load_expected_result.get('highest_video_quality', None)
     
     vimeo._set_attributes()
-    assert vimeo.video_quality_profiles == {"360p": "97fe0726-4ace-453e-a4cc-667f1a76de44", "540p": "b26531d4-5361-435d-8ec7-0b7b7e2440fc", "240p": "0f002591-d9d5-4e0a-a6ae-489a8b3ee1cd", "720p": "7a27ec5a-72be-4388-a164-bd17d0bb1480", "1080p": "25de01d1-4740-44ee-b512-9f33d9a28d8c", "1440p": "9e063f5a-6814-4734-adb2-2bdad787a1a8"}
-    assert vimeo.video_title == json_data_fixture_content['video']['title']
-    assert vimeo._cdn_stream_url == json_data_fixture_content['request']['files']['dash']['cdns']['akfire_interconnect_quic']['url']
-    assert vimeo._base_cdn_url == 'https://43vod-adaptive.akamaized.net/exp=1673311840~acl=%2F0ed83b8d-57c2-411e-a172-86923b7d2b9a%2F%2A~hmac=321800014143d8d2665a30b5670dfd9089b3d0ac35802ca5a5a19f4239f20736/0ed83b8d-57c2-411e-a172-86923b7d2b9a/'
-    assert vimeo.video_url == "https://43vod-adaptive.akamaized.net/exp=1673311840~acl=%2F0ed83b8d-57c2-411e-a172-86923b7d2b9a%2F%2A~hmac=321800014143d8d2665a30b5670dfd9089b3d0ac35802ca5a5a19f4239f20736/0ed83b8d-57c2-411e-a172-86923b7d2b9a/parcel/video/9e063f5a.mp4"
+    assert vimeo.video_quality_profiles == load_expected_result.get('video_quality_profiles', None)
+    assert vimeo.video_title == load_expected_result.get('video_title', None)
+    assert vimeo._cdn_stream_url == load_expected_result.get('cdn_stream_url', None)
+    assert vimeo._base_cdn_url == load_expected_result.get('base_cdn_url', None)
+    assert vimeo.video_url == load_expected_result.get('video_url', None)
 
 @pytest.mark.parametrize(
     "quality_dict,expected_result", [
