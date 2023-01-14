@@ -1,0 +1,8 @@
+base_cdn_url: https://cme-media.vimeocdn.com/a533ba2e-dcfb-4f69-ad44-e659df9f8aa2/edge-cache-token=Expires=1673571698&KeyName=media-cdn-key&Signature=szNoynOIXEuj0xyZMA9mnpH_qe2byGiUgJQCKMd1fsqN1IaK6B0VqVYTLsyvgTgbXTtg5Vgt6jst55X_7wgaAw==/
+cdn_stream_url: https://cme-media.vimeocdn.com/a533ba2e-dcfb-4f69-ad44-e659df9f8aa2/edge-cache-token=Expires=1673571698&KeyName=media-cdn-key&Signature=szNoynOIXEuj0xyZMA9mnpH_qe2byGiUgJQCKMd1fsqN1IaK6B0VqVYTLsyvgTgbXTtg5Vgt6jst55X_7wgaAw==/sep/video/02c5da66,710a67d8/master.json?base64_init=1
+highest_video_quality: 710a67d8-592a-4948-8ec4-5d46859b1cc6
+video_quality_profiles:
+  360p: 02c5da66-29e0-488c-a9c1-4cd92c2f51f3
+  720p: 710a67d8-592a-4948-8ec4-5d46859b1cc6
+video_title: FOREIGN CONCEPT | PT2 Bass Mixing
+video_url: https://cme-media.vimeocdn.com/a533ba2e-dcfb-4f69-ad44-e659df9f8aa2/edge-cache-token=Expires=1673571698&KeyName=media-cdn-key&Signature=szNoynOIXEuj0xyZMA9mnpH_qe2byGiUgJQCKMd1fsqN1IaK6B0VqVYTLsyvgTgbXTtg5Vgt6jst55X_7wgaAw==/parcel/video/710a67d8.mp4

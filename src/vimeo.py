@@ -54,7 +54,8 @@ class Vimeo(object):
         logging.info('Setting video title attribute')
         self.video_title = self._window_player_config['video']['title']
         logging.debug(f'Set video title attribute to: {self.video_title}')
-        self._cdn_stream_url = self._window_player_config['request']['files']['dash']['cdns']['akfire_interconnect_quic']['url']
+        default_cdn = self._window_player_config['request']['files']['dash']['default_cdn']
+        self._cdn_stream_url = self._window_player_config['request']['files']['dash']['cdns'][default_cdn]['url']
         if base_url_search_group := re.search(
             r'(^https:.*/)sep', self._cdn_stream_url
         ):

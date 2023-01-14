@@ -38,12 +38,18 @@ def test_get_url(vimeo, data_fixture_content):
         vimeo._get_vimeo_url()
         assert vimeo.content == data_fixture_content
 
-@pytest.mark.parametrize("data_fixture_content,load_expected_result", [('no_audio_in_url/parsed_cdn_url.json','no_audio_in_url/expected_result/result.yml')], indirect=['data_fixture_content', 'load_expected_result'])
+@pytest.mark.parametrize(
+    "data_fixture_content,load_expected_result",
+    [
+        ('no_audio_in_url/parsed_cdn_url.json','no_audio_in_url/expected_result/result.yml'),
+        ('no_akfire_interconnect_quick_cdn/parsed_cdn_url.json','no_akfire_interconnect_quick_cdn/expected_result/result.yml')
+    ],
+    indirect=['data_fixture_content', 'load_expected_result'])
 def test_set_attributes(vimeo, data_fixture_content, load_expected_result):
     json_data_fixture_content = json.loads(data_fixture_content)
     vimeo._window_player_config = json_data_fixture_content
     vimeo._highest_video_quality = load_expected_result.get('highest_video_quality', None)
-    
+
     vimeo._set_attributes()
     assert vimeo.video_quality_profiles == load_expected_result.get('video_quality_profiles', None)
     assert vimeo.video_title == load_expected_result.get('video_title', None)
