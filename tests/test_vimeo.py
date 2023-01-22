@@ -96,3 +96,10 @@ def test_get_audio_url(vimeo, data_fixture_content, expected_result):
         vimeo._get_audio_url()
         
     assert vimeo.audio_url == expected_result
+
+# @pytest.mark.parametrize()
+# def test_parse(vimeo):
+#     s = requests.Session()
+#     with requests_mock.Mocker(session=s) as m:
+#         m.get()
+#     pytest.fail()
