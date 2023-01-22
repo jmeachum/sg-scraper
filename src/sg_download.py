@@ -1,7 +1,6 @@
 import requests
 from requests.exceptions import HTTPError
 from bs4 import BeautifulSoup
-import json
 import re
 import ffmpeg
 import logging
@@ -164,6 +163,48 @@ def update_headers(session):
         'x-requested-with': 'XMLHttpRequest'
     }
     session.headers.update(video_headers)
+
+def combine(path):
+    combined_filename = path / f"{path.name}.mp4"
+    if not combined_filename.exists():
+        f1, f2 = path.iterdir()
+        logging.info(f"Combining {f1.name} and {f2.name}")
+        try:
+            input_1 = ffmpeg.input(str(f1))
+            input_2 = ffmpeg.input(str(f2))
+            (
+                ffmpeg
+                .output(
+                    input_1,
+                    input_2,
+                    str(combined_filename),
+                    codec = "copy"
+                    )
+                .global_args("-xerror")
+                .run(capture_stdout=True, capture_stderr=True)
+            )
+            logging.info(f"Combining {f1.name} and {f2.name} complete")
+            # TODO: Maybe check integrity here, but process should fail if the process was not successful, maybe redudant
+        except ffmpeg.Error as e:        
+            logging.error(msg=f"Failed to combine audio and video error: {e.stderr}")
+
+
+def combine_only(path):
+    # Combines all video and audio in a root path, e.g. path = downloads, will look in all directories in downloads/child_paths
+    # for child_path_name/video_child_path_name.mp4, child_path_name/audio_child_path_name.mp4 and create a combined audio/video file of
+    # child_path_name/child_path_name.mp4 so long as it does not already exist
+    pass
+
+def get_courses():
+    # First get request to /courses, returns purchased and unpurchased courses
+    # purchased courses have ids, lines 622 and 635 of tests/data_fixtures/get_courses/get_courses_resp.html
+
+    # Get request to ajax per id returns the response in tests/data_fixtures/get_courses/get_course_id_ajax_resp.html:
+    # https://sample-genie.com/wp-admin/admin-ajax.php?action=get_course_videos&id=199698
+
+    # Get request to ajax per video id returns the response in tests/data_fixtures/get_courses/get_course_video_ajax_resp.html
+    # https://sample-genie.com/wp-admin/admin-ajax.php?action=get_course_video&courseID=199698&videoID=1
+    pass
 
 def check_integrity(path):
     time.sleep(1) # To give file operation time to finish writing before check
