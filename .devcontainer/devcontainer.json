@@ -21,6 +21,10 @@
 	"mounts": [
 		"source=sg-scraper-downloads,target=${containerWorkspaceFolder}/downloads,type=volume"
 	]
+	// "mounts": [
+	// 	"source=sg-scraper-downloads,target=${containerWorkspaceFolder}/downloads,type=volume",
+	// 	"source=/Volumes/Samsung_T5/sample_genie,target=${containerWorkspaceFolder}/sample_genie,type=bind"
+	// ]
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 

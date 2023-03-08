@@ -161,3 +161,9 @@ cython_debug/
 
 # VSCode
 .vscode
+
+# Local mappings
+sample_genie
+logs
+test_async
+sg_test_ajax_get_video_iframe.py
